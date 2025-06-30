@@ -7,10 +7,10 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # متغیر از Portainer خوانده می‌شود
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD} # متغیر از Portainer خوانده می‌شود
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
   wordpress:
     image: wordpress:6.5-fpm-alpine
@@ -31,10 +31,11 @@ services:
     depends_on:
       - wordpress
     volumes:
+      # ما هنوز فایل‌های وردپرس را متصل می‌کنیم
       - wp_files:/var/www/html:ro
-      # --- تغییر کلیدی اینجاست ---
-      # ما مسیر فایل کانفیگ را نسبت به فایل docker-compose مشخص می‌کنیم
-      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf
+    # --- این بخش جدید و کلیدی است ---
+    command: >
+      sh -c "echo 'server {\n    listen 80;\n    server_name _;\n    root /var/www/html;\n    index index.php;\n    location / {\n        try_files $$uri $$uri/ /index.php?$$args;\n    }\n    location ~ \\.php$$ {\n        fastcgi_pass wordpress:9000;\n        fastcgi_index index.php;\n        include fastcgi_params;\n        fastcgi_param SCRIPT_FILENAME $$document_root$$fastcgi_script_name;\n    }\n}' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
 volumes:
   db_data:
