@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.8
+    container_name: nginx_wp_db
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'YOUR_VERY_STRONG_ROOT_PASSWORD'
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: 'YOUR_STRONG_PASSWORD'
+
+  wordpress:
+    image: wordpress:6.5-fpm-alpine # Important: FPM version
+    container_name: nginx_wp_fpm
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - wp_files:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: 'YOUR_STRONG_PASSWORD'
+      WORDPRESS_DB_NAME: wordpress
+
+  webserver:
+    image: nginx:1.27-alpine
+    container_name: nginx_wp_webserver
+    restart: always
+    depends_on:
+      - wordpress
+    volumes:
+      # Mount WordPress files (read-only)
+      - wp_files:/var/www/html:ro
+      # Mount our custom Nginx config
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+
+# Connect all services to the shared proxy network
+networks:
+  default:
+    name: my-proxy-network
+    external: true
+
+volumes:
+  db_data:
+  wp_files:
